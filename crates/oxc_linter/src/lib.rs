@@ -30,6 +30,8 @@ use std::{
 };
 
 use oxc_semantic::{AstNode, Semantic};
+use rule::Rule;
+use rules::{EslintArrayCallbackReturn, EslintNoVar};
 use rustc_hash::FxHashMap;
 
 pub use crate::{
@@ -74,6 +76,39 @@ pub struct Linter {
 }
 
 impl Linter {
+    pub fn using_cp(options: LintOptions) -> Self {
+        let rules = vec![
+            RuleWithSeverity::new(
+                RuleEnum::EslintArrayCallbackReturn(EslintArrayCallbackReturn::from_configuration(
+                    serde_json::json!([{
+                        "checkForEach": true,
+                        "allowImplicit": false
+                    }]),
+                )),
+                AllowWarnDeny::Allow,
+            ),
+            RuleWithSeverity::new(
+                RuleEnum::EslintNoVar(EslintNoVar::from_configuration(serde_json::json!([{
+                    "vars":"all",
+                    "args":"all",
+                    "caughtErrors":"all",
+                    "varsIgnorePattern":"^_",
+                    "argsIgnorePattern":"^_",
+                    "caughtErrorsIgnorePattern":"^_",
+                    "destructuredArrayIgnorePattern":"^_",
+                    "ignoreRestSiblings":false,
+                    "ignoreClassWithStaticInitBlock":false,
+                    "reportUsedIgnorePattern":true
+                }]))),
+                AllowWarnDeny::Allow,
+            ),
+        ];
+        let config =
+            ConfigStore::new(rules, LintConfig::default(), config::OxlintOverrides::default());
+
+        Self { options, config, nested_configs: FxHashMap::default() }
+    }
+
     pub fn new(options: LintOptions, config: ConfigStore) -> Self {
         Self { options, config, nested_configs: FxHashMap::default() }
     }
