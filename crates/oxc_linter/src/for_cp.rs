@@ -1,6 +1,9 @@
 use std::{path::Path, rc::Rc, sync::Arc};
 
-use crate::{LintPlugins, Message};
+use crate::{
+    LintPlugins, Message,
+    config::{OxlintEnv, OxlintGlobals, OxlintSettings},
+};
 use oxc_semantic::Semantic;
 use serde_json::json;
 
@@ -349,9 +352,15 @@ pub fn run_lint<'a>(
         ),
     ];
 
-    let c = LintConfig{ plugins: LintPlugins::ESLINT, settings: todo!(), env: todo!(), globals: todo!(), path: todo!() }
+    let c = LintConfig {
+        plugins: LintPlugins::ESLINT,
+        settings: OxlintSettings::default(),
+        env: OxlintEnv::from_iter(vec!["es6".to_string(), "browser".to_string()]),
+        globals: OxlintGlobals::default(),
+        path: None,
+    };
 
-    let config = ConfigStore::new(rules, LintConfig::default(), config::OxlintOverrides::default());
+    let config = ConfigStore::new(rules, c, config::OxlintOverrides::default());
 
     let linter = Linter::new(options, config);
     linter.run(path, semantic, module_record)
