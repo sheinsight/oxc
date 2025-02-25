@@ -288,6 +288,8 @@ impl InternConfig<'_> {
 
 impl Rule for NoMagicNumbers {
     fn from_configuration(value: serde_json::Value) -> Self {
+        println!("value: {:?}", value);
+        println!("value: {:?}", NoMagicNumbersConfig::try_from(&value));
         Self(Box::new(NoMagicNumbersConfig::try_from(&value).unwrap()))
     }
 

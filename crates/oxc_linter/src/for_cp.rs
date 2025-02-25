@@ -1,6 +1,6 @@
 use std::{path::Path, rc::Rc, sync::Arc};
 
-use crate::Message;
+use crate::{LintPlugins, Message};
 use oxc_semantic::Semantic;
 use serde_json::json;
 
@@ -36,7 +36,17 @@ use crate::{
         EslintNoSetterReturn, EslintNoShadowRestrictedNames, EslintNoSparseArrays,
         EslintNoTemplateCurlyInString, EslintNoTernary, EslintNoThisBeforeSuper,
         EslintNoThrowLiteral, EslintNoUndef, EslintNoUndefined, EslintNoUnexpectedMultiline,
-        EslintNoUnneededTernary, EslintNoUnusedVars, RuleEnum,
+        EslintNoUnneededTernary, EslintNoUnreachable, EslintNoUnsafeFinally,
+        EslintNoUnsafeNegation, EslintNoUnsafeOptionalChaining, EslintNoUnusedExpressions,
+        EslintNoUnusedLabels, EslintNoUnusedPrivateClassMembers, EslintNoUnusedVars,
+        EslintNoUselessCall, EslintNoUselessCatch, EslintNoUselessConcat,
+        EslintNoUselessConstructor, EslintNoUselessEscape, EslintNoUselessRename, EslintNoVar,
+        EslintNoVoid, EslintNoWith, EslintPreferExponentiationOperator,
+        EslintPreferNumericLiterals, EslintPreferObjectHasOwn, EslintPreferObjectSpread,
+        EslintPreferPromiseRejectErrors, EslintPreferRestParams, EslintPreferSpread, EslintRadix,
+        EslintRequireAwait, EslintRequireYield, EslintSortImports, EslintSortKeys, EslintSortVars,
+        EslintSymbolDescription, EslintUnicodeBom, EslintUseIsnan, EslintValidTypeof,
+        EslintVarsOnTop, EslintYoda, RuleEnum,
     },
 };
 
@@ -222,8 +232,8 @@ pub fn run_lint<'a>(
         deny!(EslintNoLossOfPrecision, json!({})),
         warn!(
             EslintNoMagicNumbers,
-            json!({
-              "ignore": [-1, 0, 1, 2],
+            json!([{
+              "ignore": ["-1", "0", "1", "2"],
               "ignoreArrayIndexes": true,
               "ignoreDefaultValues": true,
               "ignoreClassFieldInitialValues": true,
@@ -233,7 +243,7 @@ pub fn run_lint<'a>(
               "ignoreNumericLiteralTypes":true,
               "ignoreReadonlyClassProperties":true,
               "ignoreTypeIndexes":true
-            })
+            }])
         ),
         deny!(EslintNoMultiAssign, json!({})),
         deny!(EslintNoMultiStr, json!({})),
@@ -269,7 +279,77 @@ pub fn run_lint<'a>(
         allow!(EslintNoUndefined, json!({})),
         deny!(EslintNoUnexpectedMultiline, json!({})),
         warn!(EslintNoUnneededTernary, json!({"defaultAssignment":true})),
+        warn!(EslintNoUnreachable, json!({})),
+        deny!(EslintNoUnsafeFinally, json!({})),
+        warn!(EslintNoUnsafeNegation, json!({"enforceForOrderingRelations":true})),
+        deny!(EslintNoUnsafeOptionalChaining, json!({"disallowArithmeticOperators":true})),
+        allow!(
+            EslintNoUnusedExpressions,
+            json!({
+              "allowShortCircuit":true,
+              "allowTernary":true,
+              "allowTaggedTemplates":true,
+              "enforceForJSX":true
+            })
+        ),
+        warn!(EslintNoUnusedLabels, json!({})),
+        warn!(EslintNoUnusedPrivateClassMembers, json!({})),
+        warn!(EslintNoUselessCall, json!({})),
+        warn!(EslintNoUselessCatch, json!({})),
+        warn!(EslintNoUselessConcat, json!({})),
+        warn!(EslintNoUselessConstructor, json!({})),
+        warn!(EslintNoUselessEscape, json!({})),
+        deny!(
+            EslintNoUselessRename,
+            json!({
+              "ignoreDestructuring":false,
+              "ignoreImport":true,
+              "ignoreExport":true
+            })
+        ),
+        deny!(EslintNoVar, json!({})),
+        allow!(EslintNoVoid, json!({})),
+        // TODO 微前端需要
+        allow!(EslintNoWith, json!({})),
+        warn!(EslintPreferExponentiationOperator, json!({})),
+        allow!(EslintPreferNumericLiterals, json!({})),
+        warn!(EslintPreferObjectHasOwn, json!({})),
+        warn!(EslintPreferObjectSpread, json!({})),
+        warn!(EslintPreferPromiseRejectErrors, json!({"allowEmptyReject":false})),
+        warn!(EslintPreferRestParams, json!({})),
+        warn!(EslintPreferSpread, json!({})),
+        warn!(EslintRadix, json!(["as-needed"])),
+        deny!(EslintRequireAwait, json!({})),
+        deny!(EslintRequireYield, json!({})),
+        allow!(EslintSortImports, json!({})),
+        allow!(EslintSortKeys, json!({})),
+        allow!(EslintSortVars, json!({})),
+        deny!(EslintSymbolDescription, json!({})),
+        allow!(EslintUnicodeBom, json!({})),
+        deny!(
+            EslintUseIsnan,
+            json!({
+                "enforceForSwitchCase":true,
+                "enforceForIndexOf":true
+            })
+        ),
+        deny!(
+            EslintValidTypeof,
+            json!({
+              "requireStringLiterals":true
+            })
+        ),
+        allow!(EslintVarsOnTop, json!({})),
+        warn!(
+            EslintYoda,
+            json!({
+              "exceptRange": true,
+              "onlyEquality": true
+            })
+        ),
     ];
+
+    let c = LintConfig{ plugins: LintPlugins::ESLINT, settings: todo!(), env: todo!(), globals: todo!(), path: todo!() }
 
     let config = ConfigStore::new(rules, LintConfig::default(), config::OxlintOverrides::default());
 
