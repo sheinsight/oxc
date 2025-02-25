@@ -19,6 +19,7 @@ mod rule;
 mod service;
 mod utils;
 
+pub mod for_cp;
 pub mod loader;
 pub mod rules;
 pub mod table;

@@ -1832,6 +1832,7 @@ dependencies = [
  "markdown",
  "memchr",
  "nonmax",
+ "oxc-miette",
  "oxc_allocator",
  "oxc_ast",
  "oxc_cfg",
