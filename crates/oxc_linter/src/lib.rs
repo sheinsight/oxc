@@ -18,6 +18,7 @@ mod rule;
 mod service;
 mod utils;
 
+pub mod custom;
 pub mod loader;
 pub mod rules;
 pub mod table;

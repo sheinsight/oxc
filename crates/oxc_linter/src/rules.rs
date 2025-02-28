@@ -32,7 +32,7 @@ mod import {
     pub mod unambiguous;
 }
 
-mod eslint {
+pub mod eslint {
     pub mod array_callback_return;
     pub mod constructor_super;
     pub mod curly;
