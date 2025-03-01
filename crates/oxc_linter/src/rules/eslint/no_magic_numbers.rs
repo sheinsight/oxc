@@ -20,7 +20,9 @@ fn must_use_const_diagnostic(span: Span) -> OxcDiagnostic {
 }
 
 fn no_magic_number_diagnostic(span: Span, raw: &str) -> OxcDiagnostic {
-    OxcDiagnostic::warn(format!("No magic number: {raw}")).with_label(span)
+    OxcDiagnostic::warn(format!("No magic number: {raw}"))
+        .with_label(span.label(format!("Directly used the number {raw}")))
+        .with_help("Use a named constant instead.")
 }
 
 #[derive(Debug, Default, Clone)]
