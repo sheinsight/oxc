@@ -1,7 +1,6 @@
-use serde_json::json;
-
 use crate::{
-    AllowWarnDeny, ConfigStore, LintOptions, Linter, RuleWithSeverity,
+    AllowWarnDeny, ConfigStore, LintOptions, Linter, RuleWithSeverity, c,
+    config::{LintConfig, OxlintOverrides},
     rule::Rule,
     rules::{
         EslintArrayCallbackReturn, EslintConstructorSuper, EslintCurly, EslintDefaultCase,
@@ -46,9 +45,20 @@ use crate::{
         ImportNoCommonjs, ImportNoCycle, ImportNoDefaultExport, ImportNoDuplicates,
         ImportNoDynamicRequire, ImportNoMutableExports, ImportNoNamedAsDefault,
         ImportNoNamedAsDefaultMember, ImportNoNamedDefault, ImportNoNamespace, ImportNoSelfImport,
-        ImportNoWebpackLoaderSyntax, ImportUnambiguous, ReactButtonHasType,
-        ReactCheckedRequiresOnchangeOrReadonly, ReactExhaustiveDeps, ReactIframeMissingSandbox,
-        ReactJsxBooleanValue, ReactJsxCurlyBracePresence, ReactJsxKey, ReactJsxNoCommentTextnodes,
+        ImportNoWebpackLoaderSyntax, ImportUnambiguous, OxcApproxConstant,
+        OxcBadArrayMethodOnArguments, OxcBadBitwiseOperator, OxcBadCharAtComparison,
+        OxcBadComparisonSequence, OxcBadMinMaxFunc, OxcBadObjectLiteralComparison,
+        OxcBadReplaceAllArg, OxcConstComparisons, OxcDoubleComparisons, OxcErasingOp,
+        OxcMisrefactoredAssignOp, OxcMissingThrow, OxcNoAccumulatingSpread, OxcNoAsyncAwait,
+        OxcNoAsyncEndpointHandlers, OxcNoBarrelFile, OxcNoConstEnum, OxcNoMapSpread,
+        OxcNoOptionalChaining, OxcNoRedundantConstructorInit, OxcNoRestSpreadProperties,
+        OxcNumberArgOutOfRange, OxcOnlyUsedInRecursion, OxcUninvokedArrayCallback, PromiseAvoidNew,
+        PromiseCatchOrReturn, PromiseNoCallbackInPromise, PromiseNoNesting, PromiseNoNewStatics,
+        PromiseNoPromiseInCallback, PromiseNoReturnInFinally, PromiseParamNames,
+        PromisePreferAwaitToCallbacks, PromisePreferAwaitToThen, PromiseSpecOnly,
+        PromiseValidParams, ReactButtonHasType, ReactCheckedRequiresOnchangeOrReadonly,
+        ReactExhaustiveDeps, ReactIframeMissingSandbox, ReactJsxBooleanValue,
+        ReactJsxCurlyBracePresence, ReactJsxKey, ReactJsxNoCommentTextnodes,
         ReactJsxNoDuplicateProps, ReactJsxNoScriptUrl, ReactJsxNoTargetBlank, ReactJsxNoUndef,
         ReactJsxNoUselessFragment, ReactJsxPropsNoSpreadMulti, ReactNoArrayIndexKey,
         ReactNoChildrenProp, ReactNoDanger, ReactNoDangerWithChildren, ReactNoDirectMutationState,
@@ -57,43 +67,49 @@ use crate::{
         ReactPerfJsxNoJsxAsProp, ReactPerfJsxNoNewArrayAsProp, ReactPerfJsxNoNewFunctionAsProp,
         ReactPerfJsxNoNewObjectAsProp, ReactPreferEs6Class, ReactReactInJsxScope,
         ReactRequireRenderReturn, ReactRulesOfHooks, ReactSelfClosingComp, ReactStylePropObject,
-        ReactVoidDomElementsNoChildren, RuleEnum,
+        ReactVoidDomElementsNoChildren, RuleEnum, TypescriptAdjacentOverloadSignatures,
+        TypescriptArrayType, TypescriptBanTsComment, TypescriptBanTslintComment,
+        TypescriptBanTypes, TypescriptConsistentGenericConstructors,
+        TypescriptConsistentIndexedObjectStyle, TypescriptConsistentTypeDefinitions,
+        TypescriptConsistentTypeImports, TypescriptExplicitFunctionReturnType,
+        TypescriptNoConfusingNonNullAssertion, TypescriptNoDuplicateEnumValues,
+        TypescriptNoDynamicDelete, TypescriptNoEmptyInterface, TypescriptNoEmptyObjectType,
+        TypescriptNoExplicitAny, TypescriptNoExtraNonNullAssertion, TypescriptNoExtraneousClass,
+        TypescriptNoImportTypeSideEffects, TypescriptNoInferrableTypes, TypescriptNoMisusedNew,
+        TypescriptNoNamespace, TypescriptNoNonNullAssertedNullishCoalescing,
+        TypescriptNoNonNullAssertedOptionalChain, TypescriptNoNonNullAssertion,
+        TypescriptNoRequireImports, TypescriptNoThisAlias, TypescriptNoUnnecessaryTypeConstraint,
+        TypescriptNoUnsafeDeclarationMerging, TypescriptNoUnsafeFunctionType,
+        TypescriptNoUselessEmptyExport, TypescriptNoVarRequires, TypescriptNoWrapperObjectTypes,
+        TypescriptPreferAsConst, TypescriptPreferEnumInitializers, TypescriptPreferForOf,
+        TypescriptPreferFunctionType, TypescriptPreferLiteralEnumMember,
+        TypescriptPreferNamespaceKeyword, TypescriptPreferTsExpectError,
+        TypescriptTripleSlashReference,
     },
 };
+use lint_mode::LintMode;
+use react_config::{ReactConfig, ReactRuntime};
+use serde_json::json;
+pub mod commons;
+pub mod lint_mode;
+pub mod react_config;
+pub mod rules;
 
-macro_rules! c {
-    ($severity:expr,$name:ident,$config:expr) => {
-        RuleWithSeverity::new(
-            RuleEnum::$name($name::from_configuration($config)),
-            match $severity {
-                0 => AllowWarnDeny::Allow,
-                1 => AllowWarnDeny::Warn,
-                2 => AllowWarnDeny::Deny,
-                _ => panic!("Severity must be 0 (Allow), 1 (Warn), or 2 (Deny)"),
-            },
-        )
-    };
-    ($severity:expr, $name:ident) => {
-        c!($severity, $name, serde_json::Value::Null)
-    }; // ($name:ident) => {
-       //     c!(2, $name, serde_json::Value::Null)
-       // };
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum LintMode {
-    Development,
-    Production,
-    None,
-}
+// pub use commons::c;
 
 pub struct CustomLinter {
     mode: LintMode,
+    react: ReactConfig,
 }
 
 impl CustomLinter {
     pub fn new() -> Self {
-        Self { mode: LintMode::Development }
+        Self { mode: LintMode::Development, react: ReactConfig::default() }
+    }
+
+    pub fn with_react_config(mut self, react: ReactConfig) -> Self {
+        self.react = react;
+        self
     }
 
     fn get_eslint_rules(&self) -> Vec<RuleWithSeverity> {
@@ -525,7 +541,10 @@ impl CustomLinter {
             ),
             c!(0, ReactPreferEs6Class),
             // TODO 要跟 jsx-runtime 联动
-            c!(2, ReactReactInJsxScope),
+            c!(
+                if self.react.runtime == ReactRuntime::Automatic { 2 } else { 0 },
+                ReactReactInJsxScope
+            ),
             c!(2, ReactRequireRenderReturn),
             c!(1, ReactRulesOfHooks),
             c!(
@@ -558,6 +577,155 @@ impl CustomLinter {
         ]
     }
 
+    fn get_typescript_rules(&self) -> Vec<RuleWithSeverity> {
+        vec![
+            c!(2, TypescriptAdjacentOverloadSignatures),
+            c!(0, TypescriptArrayType),
+            c!(0, TypescriptBanTsComment),
+            c!(2, TypescriptBanTslintComment),
+            c!(
+                2,
+                TypescriptBanTypes,
+                json!({
+                    "types": {
+                        "String": {
+                          "message": "Use string instead",
+                          "fixWith": "string"
+                        },
+                        "Number": {
+                          "message": "Use number instead",
+                          "fixWith": "number"
+                        },
+                        "Boolean": {
+                          "message": "Use boolean instead",
+                          "fixWith": "boolean"
+                        },
+                        "Object": {
+                          "message": "Use Record<string, unknown> instead"
+                        },
+                        "Function": {
+                          "message": "Use specific function type instead"
+                        }
+                      }
+                })
+            ),
+            c!(0, TypescriptConsistentGenericConstructors),
+            c!(0, TypescriptConsistentIndexedObjectStyle),
+            c!(0, TypescriptConsistentTypeDefinitions),
+            c!(0, TypescriptConsistentTypeImports),
+            // TODO  isolated_declarations 需要验证
+            c!(
+                1,
+                TypescriptExplicitFunctionReturnType,
+                json!({
+                    "allowExpressions": true,                    // 允许函数表达式不声明返回类型
+                    "allowTypedFunctionExpressions": true,       // 允许已有类型声明的函数表达式
+                    "allowDirectConstAssertionInArrowFunctions": true,  // 允许箭头函数中的 const 断言
+                    "allowConciseArrowFunctionExpressionsStartingWithVoid": true,  // 允许以 void 开始的简洁箭头函数
+                    "allowFunctionsWithoutTypeParameters": true,  // 允许无类型参数的函数
+                    "allowedNames": [ ],  // 允许的函数名列表
+                    "allowHigherOrderFunctions": true,           // 允许高阶函数
+                    "allowIIFEs": true
+                })
+            ),
+            c!(2, TypescriptNoConfusingNonNullAssertion),
+            c!(2, TypescriptNoDuplicateEnumValues),
+            c!(1, TypescriptNoDynamicDelete),
+            c!(1, TypescriptNoEmptyInterface),
+            c!(
+                1,
+                TypescriptNoEmptyObjectType,
+                json!({
+                    "allowInterfaces": "never",
+                    "allowObjectTypes": "never",
+                    "allowWithName": ""
+                })
+            ),
+            c!(1, TypescriptNoExplicitAny),
+            c!(2, TypescriptNoExtraNonNullAssertion),
+            c!(0, TypescriptNoExtraneousClass),
+            c!(1, TypescriptNoImportTypeSideEffects),
+            c!(0, TypescriptNoInferrableTypes),
+            c!(1, TypescriptNoMisusedNew),
+            c!(
+                1,
+                TypescriptNoNamespace,
+                json!({
+                    "allowDeclarations": false,
+                    "allowDefinitionFiles": true
+                })
+            ),
+            c!(2, TypescriptNoNonNullAssertedNullishCoalescing),
+            c!(2, TypescriptNoNonNullAssertedOptionalChain),
+            c!(2, TypescriptNoNonNullAssertion),
+            c!(1, TypescriptNoRequireImports),
+            c!(1, TypescriptNoThisAlias),
+            c!(1, TypescriptNoUnnecessaryTypeConstraint),
+            c!(2, TypescriptNoUnsafeDeclarationMerging),
+            c!(0, TypescriptNoUnsafeFunctionType),
+            c!(2, TypescriptNoUselessEmptyExport),
+            c!(2, TypescriptNoVarRequires),
+            c!(2, TypescriptNoWrapperObjectTypes),
+            c!(1, TypescriptPreferAsConst),
+            c!(2, TypescriptPreferEnumInitializers),
+            c!(1, TypescriptPreferForOf),
+            c!(0, TypescriptPreferFunctionType),
+            c!(2, TypescriptPreferLiteralEnumMember),
+            c!(1, TypescriptPreferNamespaceKeyword),
+            c!(2, TypescriptPreferTsExpectError),
+            c!(1, TypescriptTripleSlashReference),
+        ]
+    }
+
+    fn get_promise_rules(&self) -> Vec<RuleWithSeverity> {
+        vec![
+            c!(1, PromiseAvoidNew),
+            c!(2, PromiseCatchOrReturn, json!({ "allowFinally": true })),
+            c!(0, PromiseNoCallbackInPromise),
+            c!(2, PromiseNoNesting),
+            c!(2, PromiseNoNewStatics),
+            c!(1, PromiseNoPromiseInCallback),
+            c!(2, PromiseNoReturnInFinally),
+            c!(0, PromiseParamNames),
+            c!(0, PromisePreferAwaitToCallbacks),
+            c!(1, PromisePreferAwaitToThen),
+            c!(2, PromiseSpecOnly, json!({ "allowedMethods": [] })),
+            c!(0, PromiseValidParams),
+        ]
+    }
+
+    fn get_oxc_rules(&self) -> Vec<RuleWithSeverity> {
+        vec![
+            c!(2, OxcApproxConstant),
+            c!(2, OxcBadArrayMethodOnArguments),
+            // TODO 规则是对的，但是边界场景太多，所以临时设定为 1， 以后考虑放开 2
+            c!(1, OxcBadBitwiseOperator),
+            c!(2, OxcBadCharAtComparison),
+            c!(2, OxcBadComparisonSequence),
+            c!(2, OxcBadMinMaxFunc),
+            c!(2, OxcBadObjectLiteralComparison),
+            c!(2, OxcBadReplaceAllArg),
+            c!(2, OxcConstComparisons),
+            c!(2, OxcDoubleComparisons),
+            c!(2, OxcErasingOp),
+            c!(2, OxcMisrefactoredAssignOp),
+            c!(2, OxcMissingThrow),
+            c!(1, OxcNoAccumulatingSpread),
+            c!(0, OxcNoAsyncAwait),
+            c!(0, OxcNoAsyncEndpointHandlers),
+            c!(0, OxcNoBarrelFile),
+            c!(2, OxcNoConstEnum),
+            c!(1, OxcNoMapSpread),
+            c!(0, OxcNoOptionalChaining),
+            c!(1, OxcNoRedundantConstructorInit),
+            c!(0, OxcNoRestSpreadProperties),
+            c!(2, OxcNumberArgOutOfRange),
+            c!(1, OxcOnlyUsedInRecursion),
+            // TODO 跟 EslintArrayCallbackReturn 冲突
+            c!(0, OxcUninvokedArrayCallback),
+        ]
+    }
+
     pub fn lint(&self) {
         let options = LintOptions::default();
 
@@ -570,7 +738,16 @@ impl CustomLinter {
             AllowWarnDeny::Allow,
         )];
 
-        // let config = ConfigStore::new(base_rules, base_config, overrides);
+        let lint_config = LintConfig::default();
+
+        let overrides = OxlintOverrides::default();
+
+        // overrides.push(OxlintOverride {
+        //     files: GlobSet::new(vec!["**/*.ts", "**/*.tsx"]).unwrap(),
+        //     ..Default::default()
+        // });
+
+        // let config = ConfigStore::new(base_rules, lint_config, overrides);
 
         // let linter = Linter::new(options, config);
     }
