@@ -2,14 +2,25 @@ use serde_json::{Map, Value, json};
 
 use super::rule_getter::RuleGetter;
 
-pub struct TypescriptRuleGetter;
+#[derive(Default, Clone)]
+pub struct TypescriptConfig {}
+
+pub struct TypescriptRuleGetter {
+    config: TypescriptConfig,
+}
+
+impl TypescriptRuleGetter {
+    pub fn new(config: TypescriptConfig) -> Self {
+        Self { config }
+    }
+}
 
 impl RuleGetter for TypescriptRuleGetter {
-    fn get_dev_override_rules() -> Map<String, Value> {
+    fn get_dev_override_rules(&self) -> Map<String, Value> {
         json!({}).as_object().map_or(Map::new(), |map| map.to_owned())
     }
 
-    fn get_def_rules() -> Map<String, Value> {
+    fn get_def_rules(&self) -> Map<String, Value> {
         json!({
           "typescript/no-duplicate-enum-values":2,
           "typescript/no-extra-non-null-assertion": 2,

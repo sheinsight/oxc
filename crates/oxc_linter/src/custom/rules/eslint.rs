@@ -1,10 +1,16 @@
 use crate::custom::rules::rule_getter::RuleGetter;
 use serde_json::{Map, Value, json};
 
-pub struct EslintRuleGetter {}
+pub struct EslintRuleGetter;
+
+impl EslintRuleGetter {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
 
 impl RuleGetter for EslintRuleGetter {
-    fn get_dev_override_rules() -> Map<String, Value> {
+    fn get_dev_override_rules(&self) -> Map<String, Value> {
         json!({
             "eslint/no-console":[1,{"allow":["error","warn","info"]}],
             "eslint/no-debugger":1,
@@ -17,7 +23,7 @@ impl RuleGetter for EslintRuleGetter {
         .map_or(Map::new(), |map| map.to_owned())
     }
 
-    fn get_def_rules() -> Map<String, Value> {
+    fn get_def_rules(&self) -> Map<String, Value> {
         json!({
             "eslint/for-direction": 2,
             "eslint/no-empty-pattern":2,

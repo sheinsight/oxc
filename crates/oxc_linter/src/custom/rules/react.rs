@@ -2,14 +2,45 @@ use serde_json::{Map, Value, json};
 
 use super::rule_getter::RuleGetter;
 
-pub struct ReactRuleGetter;
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum ReactRuntime {
+    Classic,
+    Automatic,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReactConfig {
+    pub runtime: ReactRuntime,
+}
+
+impl Default for ReactConfig {
+    fn default() -> Self {
+        Self { runtime: ReactRuntime::Automatic }
+    }
+}
+
+pub struct ReactRuleGetter {
+    config: ReactConfig,
+}
+
+impl ReactRuleGetter {
+    pub fn new(config: ReactConfig) -> Self {
+        Self { config }
+    }
+}
+
+impl Default for ReactRuleGetter {
+    fn default() -> Self {
+        Self::new(ReactConfig::default())
+    }
+}
 
 impl RuleGetter for ReactRuleGetter {
-    fn get_dev_override_rules() -> Map<String, Value> {
+    fn get_dev_override_rules(&self) -> Map<String, Value> {
         json!({}).as_object().map_or(Map::new(), |map| map.to_owned())
     }
 
-    fn get_def_rules() -> Map<String, Value> {
+    fn get_def_rules(&self) -> Map<String, Value> {
         json!({
           "react/jsx-key":2,
           "react/jsx-no-duplicate-props":2,
@@ -51,7 +82,7 @@ impl RuleGetter for ReactRuleGetter {
             "propElementValues": "always"
           }],
           "react/no-set-state":0,
-          "react/react-in-jsx-scope":2
+          "react/react-in-jsx-scope": if self.config.runtime == ReactRuntime::Automatic { 0 } else { 2 }
         })
         .as_object()
         .map_or(Map::new(), |map| map.to_owned())

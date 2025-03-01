@@ -60,7 +60,7 @@ schemars = { workspace = true, features = ["indexmap2"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 simdutf8 = { workspace = true }
-
+miette = { workspace = true, features = ["fancy-no-syscall","syntect-highlighter"] }
 [dev-dependencies]
 insta = { workspace = true }
 markdown = { workspace = true }
